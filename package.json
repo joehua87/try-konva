@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "classnames": "^2.2.5",
     "dot-prop-immutable": "^1.4.0",
     "fontfaceobserver": "^2.0.13",
     "konva": "^1.7.6",
@@ -11,6 +12,10 @@
     "react-konva": "^1.6.4"
   },
   "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-eslint": "^8.2.1",
+    "babel-loader": "^7.1.2",
+    "babel-plugin-module-resolver": "^3.0.0",
     "eslint": "^4.15.0",
     "eslint-config-airbnb": "^16.1.0",
     "eslint-import-resolver-webpack": "^0.8.4",
