@@ -281,6 +281,9 @@ class ProductCustomer extends PureComponent<TProductCustomer, any> {
     const { text: message, fontSize, fontFamily } = item || {}
     return (
       <div key={idx} className="w-100">
+        <div className="pv3">
+          <span className="f6 ttu fw3 gray">Text edit</span>
+        </div>
         <div className="pv3 flex flex-wrap w-100">
           <span className="db mb2 w-100 ttu f7">Message</span>
           <textarea
@@ -344,6 +347,9 @@ class ProductCustomer extends PureComponent<TProductCustomer, any> {
     const { src } = item || {}
     return (
       <div className="w-100">
+        <div className="pv3">
+          <span className="f6 ttu fw3 gray">Image edit</span>
+        </div>
         <div className="pv3 flex flex-wrap w-100">
           <span className="db mb2 w-100 ttu f7">Url</span>
           <input
@@ -506,7 +512,7 @@ class ProductCustomer extends PureComponent<TProductCustomer, any> {
             )}
           </div>
           <div className="mt2 pv3 flex flex-wrap items-center w-100">
-            <div className="mb2 f7 ttu">
+            <div className="mb2 f6 ttu">
               <span>List item added</span>
             </div>
             <div
