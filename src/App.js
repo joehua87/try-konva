@@ -1,145 +1,231 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import { Layer, Rect, Stage, Group, Image, Text } from "react-konva";
+import React, { Component, PureComponent } from 'react'
+import { Layer, Stage, Image, Text } from 'react-konva'
+import FontFaceObserver from 'fontfaceobserver'
+import dot from 'dot-prop-immutable'
 
-const state = {
-  items: [
-    {
-      type: 'text',
-      content: '',
-      fontSize: '',
-      fontFamily: '',
-      fontWeight: '', // Dropdown
-      offset: {
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
-      }
-    },
-    {
-      type: 'image',
-      src: '',
-      offset: {
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
-      }
-    }
-  ]
+const im = {
+  type: 'image',
+  src:
+    'https://greensock.com/wp-content/themes/greensock/images/icon-github.svg',
+  width: 200,
+  height: 200,
+  display: {
+    x: 211,
+    y: 45,
+    width: 200,
+    height: 200,
+  },
+}
+const te = {
+  type: 'text',
+  fontSize: 20,
+  fontFamily: 'Pacifico',
+  text: 'Made by Connected JSC',
+  display: {
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 200,
+  },
 }
 
-class MyRect extends React.Component {
-  state = { color: "green", x: 30, y: 30 };
-  componentDidMount() {
-    const image = new window.Image();
-    const image1 = new window.Image();
-    image.src =
-      "https://scontent.fsgn4-1.fna.fbcdn.net/v/t34.0-12/26105313_10208821307088735_1973258509_n.jpg?oh=db15579c03ed48b1e6ed000b2a40c9c4&oe=5A4796D6";
-    image.onload = () => {
-      this.setState({
-        image: image
-      });
-    };
-    image1.src =
-      "https://image.flaticon.com/icons/svg/49/49856.svg";
-    image1.onload = () => {
-      this.setState({
-        image: image,
-        image1: image1,
-      });
-    };
+class ProductCustomer extends PureComponent<any, any> {
+  constructor(props) {
+    super(props)
+    this.state = {
+      items: props.items || [],
+    }
   }
-  handleClick = () => {
-    // window.Konva is a global variable for Konva framework namespace
-    console.log("Click");
-    this.setState({
-      color: window.Konva.Util.getRandomColor()
-    });
-  };
 
-  handleDragEnd = e => {
-    console.log("Drag");
-    const { x, y } = e.target.attrs;
-    console.log({ x, y });
-    console.log("change size rect", this.rect);
-    const rect = this.rect;
+  componentWillReceiveProps(nextProps) {
+    console.log('componentWillReceiveProps', nextProps)
+  }
 
-    // if (!rect) return
+  componentDidMount() {
+    console.log('componentDidMount')
+  }
 
-    // to() is a method of `Konva.Node` instances
-    rect.to({
-      scaleX: Math.random() + 0.8,
-      scaleY: Math.random() + 0.8,
-      duration: 0.2,
-      x,
-      y
-    });
+  getOffset = ({ x, y, h, w }: { [key: string]: number }) => ({
+    x: x - w / 2,
+    y: y - h / 2,
+  })
 
-    this.setState(
-      {
-        x,
-        y
+  /**
+   * createImage: will create a image dom
+   * if not found window, this will repeat until
+   * the reached is limited count or when the window is found
+   */
+  createImage = (src: string, count: number = 0, limit?: number = 10) => {
+    if (count > limit) return null
+    if (!window) return this.createImage(src, count + 1, limit)
+    const image = new window.Image()
+    image.src = src
+    image.onload = () => {
+      // update layer manually
+      const img = this.images && this.images[src]
+      if (img) img.getLayer().batchDraw()
+    }
+    return image
+  }
+
+  redrawLayer = () => {
+    if (!this.layer || !this.layer.getPlayer) return false
+    this.layer.getPlayer().batchDraw()
+  }
+
+  watchFontLoading = (fontFamily: string, ref: any) => {
+    const font = new FontFaceObserver(fontFamily, {
+      weight: 400,
+    })
+    font.load().then(
+      () => {
+        console.log('Font', fontFamily, 'is available')
+        this.fonts[fontFamily] = true
+        ref.getLayer().batchDraw()
       },
       () => {
-        console.log(this.rect);
-      }
-    );
-  };
+        console.log('Font', fontFamily, 'is not available')
+      },
+    )
+  }
+
+  onDragUpdateOffset = ({ x, y }: { x: number, y: number }, idx: number) => {
+    let { items } = this.state
+    console.log('before', items[idx])
+    items = [...items]
+    items[idx] = {
+      ...(items[idx] || {}),
+      display: {
+        ...((items[idx] && items[idx].display) || {}),
+        x,
+        y,
+      },
+    }
+    console.log('after', items[idx])
+    this.setState({ items })
+  }
+
+  onDragItem = (e: any, idx: number) => {
+    this.onDragUpdateOffset(e.target._lastPos, idx)
+  }
+
+  fonts: any = {}
+
+  images: any = {}
+
+  layer: any
+
+  renderItem = ({ type, display, ...props }: { type: string }, idx: number) => {
+    const { x, y, height, width } = display || {}
+
+    if (!['text', 'image'].includes(type)) return null
+
+    if (type === 'text') {
+      const { text, fontSize, fontFamily } = props || {}
+      return (
+        <Text
+          ref={(ref) => {
+            if (!this.fonts[fontFamily]) this.watchFontLoading(fontFamily, ref)
+          }}
+          key={idx}
+          draggable
+          text={text}
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          onDragEnd={e => this.onDragItem(e, idx)}
+          fontSize={fontSize}
+          fontFamily={fontFamily}
+        />
+      )
+    }
+    if (type === 'image') {
+      const { src } = props || {}
+      const image = this.createImage(src, 0)
+      console.log('createImage', image)
+      return (
+        <Image
+          ref={ref => (this.images[src] = ref)}
+          key={idx}
+          draggable
+          strokeWidth={4}
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          onDragEnd={e => this.onDragItem(e, idx)}
+          image={image}
+        />
+      )
+    }
+  }
+
+  renderPreview = () => {
+    console.log('render preview')
+    const { items } = this.state
+    console.log(items, 'items')    
+    return (
+      <Stage
+        width={600}
+        height={600}
+        style={{ width: 600, height: 600 }}
+        className="ba b--light-gray dib center"
+      >
+        <Layer ref={ref => (this.layer = ref)}>
+          {(items || [])
+            .map((item, i) => this.renderItem(item, i))
+            .filter(x => !!x)}
+        </Layer>
+      </Stage>
+    )
+  }
+
+  renderEditor = () => {
+    console.log('render editor')
+    return (
+      <div>
+        <span onClick={() => this.addItem(te)}>add text</span>
+        <span onClick={() => this.addItem(im)}>add image</span>
+        <span onClick={() => {
+          var x = prompt("Please index")
+          this.removeItem(x)
+        }}>remove</span>
+      </div>
+    )
+  }
+
+  addItem = (item: TPreviewItem) => {
+    const { items } = this.state
+    this.setState({ items: [...items, item] })
+  }
+
+  removeItem = (idx: number) => {
+    const { items } = this.state
+    this.setState({ items: dot.delete(items, idx) })
+  }
 
   render() {
-    console.log("rect", this.rect);
+    console.log('full render')
     return (
-      <Layer>
-        {this.props.show && <Image strokeWidth={4} x={0} y={0} image={this.state.image} />}
-        <Image draggable strokeWidth={4} x={0} y={0} width={250} height={200} image={this.state.image1} />
-        {/* <Rect
-          ref={ref => {
-            console.log("get refs");
-            this.rect = ref;
-          }}
-          x={0}
-          y={0}
-          stroke="black"
-          strokeWidth={4}
-          width={200}
-          height={200}
-          shadowBlur={5}
-          fill="red"
-          // draggable
-          onClick={this.handleClick}
-          onDragEnd={this.handleDragEnd}
-          // onDragStart={this.handleDragEnd.bind(this)}
-        /> */}
-        <Text draggable text={"Hello Pp"} x={50} y={50} fontSize={50} fontFamily="Pacifico" />
-      </Layer>
-    );
+      <div data-component="ProductCustomer" className="flex flex-wrap items-center justify-center"> 
+        {this.renderEditor()}
+        {this.renderPreview()}
+      </div>
+    )
   }
 }
 
-export default class App extends React.Component {
+export default class App extends Component {
   render() {
     return (
       <div className="w-100">
-        <link href="https://fonts.googleapis.com/css?family=Pacifico" rel="stylesheet" />
-        <Stage
-          width={700}
-          height={700}
-          style={{ width: 700, height: 700 }}
-          className="ba b--light-gray dib center"
-        >
-          <MyRect />
-        </Stage>
-        <Stage
-          width={700}
-          height={700}
-          style={{ width: 700, height: 700 }}
-          className="ba b--light-gray dib center"
-        >
-          <MyRect show />
-        </Stage>
+        <link
+          href="https://fonts.googleapis.com/css?family=Pacifico"
+          rel="stylesheet"
+        />
+        <ProductCustomer />
       </div>
-    );
+    )
   }
 }
